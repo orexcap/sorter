@@ -107,7 +107,7 @@ namespace SORTER
             foreach (var file in destinationFiles)
             {
                 var f = ConvertToFileIndex(file);
-                Console.WriteLine(f.FileName);
+                Console.WriteLine(f.FilePath);
                 if (f.FileName.StartsWith('.') == false && 
                     ValidFileExtentions.Contains(f.FileExtension.ToLower()))
                     {
@@ -125,10 +125,19 @@ namespace SORTER
         }
 
         static FileIndexInfo ConvertToFileIndex(string FilePath){
+
+            string fileName = Path.GetFileName(FilePath);
+            string fileExtension = "";
+
+            if(Path.GetExtension(FilePath).StartsWith('.'))
+            {
+                fileExtension = Path.GetExtension(FilePath).Remove(1);
+            }
+
             FileIndexInfo rFileIndexInfo = new FileIndexInfo();
             rFileIndexInfo.MD5Checksum = CalculateMD5(FilePath);
-            rFileIndexInfo.FileName = Path.GetFileName(FilePath);
-            rFileIndexInfo.FileExtension  = Path.GetExtension(FilePath).Substring(1);
+            rFileIndexInfo.FileName = fileName;
+            rFileIndexInfo.FileExtension = fileExtension;
             rFileIndexInfo.FilePath = FilePath;
             rFileIndexInfo.CreatedOnDate   = File.GetCreationTime(FilePath);
             rFileIndexInfo.UpdatedOnDate = File.GetLastWriteTime(FilePath);
