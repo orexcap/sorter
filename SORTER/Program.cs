@@ -92,7 +92,7 @@ namespace SORTER
 
         static List<FileIndexInfo> GenerateFileListJson(string DestinationFolderPath, string FileListJsonFilePath)
         {
-            Console.Write("Indexing Destination Folder {0}.", DestinationFolderPath);
+            ConsoleLog(String.Format("Indexing Destination Folder {0}.", DestinationFolderPath));
             var rFileListCache = new List<FileIndexInfo>();
             var PhotoDestinationFiles = Directory.GetFiles(DestinationFolderPath, "*.*", SearchOption.AllDirectories);
 

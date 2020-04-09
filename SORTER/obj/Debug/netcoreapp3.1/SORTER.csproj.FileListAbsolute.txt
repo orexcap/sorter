@@ -10,3 +10,5 @@
 /Users/joseph/Projects/SORTER/SORTER/obj/Debug/netcoreapp3.1/SORTER.dll
 /Users/joseph/Projects/SORTER/SORTER/obj/Debug/netcoreapp3.1/SORTER.pdb
 /Users/joseph/Projects/SORTER/SORTER/obj/Debug/netcoreapp3.1/SORTER.csprojAssemblyReference.cache
+/Users/joseph/Projects/SORTER/SORTER/obj/Debug/netcoreapp3.1/SORTER.csproj.CoreCompileInputs.cache
+/Users/joseph/Projects/SORTER/SORTER/obj/Debug/netcoreapp3.1/SORTER.genruntimeconfig.cache
