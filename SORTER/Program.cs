@@ -13,7 +13,7 @@ namespace SORTER
         public static string SourceFolderPath = "/Users/joseph/Desktop/TEST_UNSORTED";
         public static string PhotosFileExtensions = "jpg,jpeg,cr2,cr3,png,gif,heif";
         public static string VideosFileExtensions = "mp4,mov,avi,mkv";
-        public static StringBuilder Log;
+        public static StringBuilder Logs;
 
         static void Main(string[] args)
         {
@@ -29,13 +29,12 @@ namespace SORTER
 
         static void Sort(string Mode, string DestinationFolderPath,string[] ValidFileExtentions )
         {
-            Log = new StringBuilder();
+            Logs = new StringBuilder();
             ConsoleLog(String.Format("Sorting in {0} Mode.",Mode));
             string FileListJsonFilePath = String.Format("{0}/FileList.json", DestinationFolderPath);
             List<FileIndexInfo> FileListCache = new List<FileIndexInfo>();
 
             // Destination Folder
-
             if (File.Exists(FileListJsonFilePath))
             {
                 ConsoleLog(String.Format("Reading {0}' FileList.json...",Mode));
@@ -49,7 +48,6 @@ namespace SORTER
                     FileListJsonFilePath);
             }
 
-
             // Source Folder
             ConsoleLog(String.Format("Reading files from {0}.", SourceFolderPath));
 
@@ -57,55 +55,42 @@ namespace SORTER
 
             foreach (var file in Files)
             {
-                string fileExtension = Path.GetExtension(file).Substring(1);
-                string fileName = Path.GetFileName(file);
+                var f = ConvertToFileIndex(file);
 
-                var createDate = File.GetCreationTime(file);
-                var updateDate = File.GetLastWriteTime(file);
+                var folderDate = f.CreatedOnDate < f.UpdatedOnDate ? f.CreatedOnDate : f.UpdatedOnDate;
 
-                var folderDate = createDate < updateDate ? createDate : updateDate;
-
-
-                if (ValidFileExtentions.Contains(fileExtension.ToLower()))
+                if (ValidFileExtentions.Contains(f.FileExtension.ToLower()))
                 {
                     string destinationFolderPath = String.Format(@"{0}/{1:yyyy}/{1:MM}/{1:yyyyMMdd}/{2}"
-                        , DestinationFolderPath, folderDate, fileExtension.ToUpper());
+                        , DestinationFolderPath, folderDate, f.FileExtension.ToUpper());
                     string destinationFilePath = String.Format("{0}/{1}"
-                        , destinationFolderPath, fileName);
+                        , destinationFolderPath, f.FileName);
 
                     if (Directory.Exists(destinationFolderPath) == false)
                     {
                         Directory.CreateDirectory(destinationFolderPath);
                     }
-
-                    string fileMD5 = CalculateMD5(file);
-
-                    int fileCount = FileListCache.Where(fi => fi.MD5Checksum == fileMD5).Count();
+                     
+                    int fileCount = FileListCache.Where(fi => fi.MD5Checksum == f.MD5Checksum).Count();
 
                     if (fileCount != 0)
                     {
-                        ConsoleLog(String.Format("File {0}({1}) already exists.", fileName, fileMD5));
+                        ConsoleLog(String.Format("File {0}({1}) already exists.", f.FileName, f.MD5Checksum));
                     }
                     else
                     {
                         File.Move(file, destinationFilePath);
-                        ConsoleLog(String.Format("File {0}({1}) was moved to {2}.", fileName, fileMD5, destinationFolderPath));
+                        FileListCache.Add(f);
+                        ConsoleLog(String.Format("File {0}({1}) was moved to {2}.", f.FileName, f.MD5Checksum, destinationFolderPath));
                     }
-                }
-                 
+                }    
             }
-
-            // Refresh FileListJson File
-            // Append Only
-            // FileListCache = GenerateFileListJson(DestinationFolderPath,FileListJsonFilePath);
-            // 
-
-
+            SaveFileListJson(FileListJsonFilePath, FileListCache, DestinationFolderPath);
             ConsoleLog(String.Format("Finished Sorting {0}.", Mode));
             SaveLogs(DestinationFolderPath);
         }
 
-        static List<FileIndexInfo> GenerateFileListJson(string DestinationFolderPath, string FileListJsonPath)
+        static List<FileIndexInfo> GenerateFileListJson(string DestinationFolderPath, string FileListJsonFilePath)
         {
             Console.Write("Indexing Destination Folder {0}.", DestinationFolderPath);
             var rFileListCache = new List<FileIndexInfo>();
@@ -117,16 +102,29 @@ namespace SORTER
 
                 if (fileName.StartsWith('.') == false)
                 {
-                    var fileIndex = new FileIndexInfo();
-                    fileIndex.MD5Checksum = CalculateMD5(file);
-                    fileIndex.FileName = fileName;
-                    fileIndex.FilePath = file;
+                    var fileIndex = ConvertToFileIndex(file);
                     rFileListCache.Add(fileIndex);
                 }
             }
-            File.WriteAllText(FileListJsonPath, JsonConvert.SerializeObject(rFileListCache));
-            ConsoleLog(String.Format("Done Indexing Destination Folder {0}. FileList.json was updated.", DestinationFolderPath));
+            SaveFileListJson(FileListJsonFilePath, rFileListCache,DestinationFolderPath);
             return rFileListCache;
+        }
+
+        static void SaveFileListJson(string FileListJsonFilePath, List<FileIndexInfo> FileListCache, string DestinationFolderPath)
+        {
+            File.WriteAllText(FileListJsonFilePath, JsonConvert.SerializeObject(FileListCache));
+            ConsoleLog(String.Format("Done Indexing Destination Folder {0}. FileList.json was updated.", DestinationFolderPath));
+        }
+
+        static FileIndexInfo ConvertToFileIndex(string FilePath){
+            FileIndexInfo rFileIndexInfo = new FileIndexInfo();
+            rFileIndexInfo.MD5Checksum = CalculateMD5(FilePath);
+            rFileIndexInfo.FileName = Path.GetFileName(FilePath);
+            rFileIndexInfo.FileExtension  = Path.GetExtension(FilePath).Substring(1);
+            rFileIndexInfo.FilePath = FilePath;
+            rFileIndexInfo.CreatedOnDate   = File.GetCreationTime(FilePath);
+            rFileIndexInfo.UpdatedOnDate = File.GetLastWriteTime(FilePath);
+            return rFileIndexInfo;
         }
 
         static string CalculateMD5(string filename)
@@ -143,7 +141,7 @@ namespace SORTER
 
         static void ConsoleLog(String Text)
         {
-            Log.AppendFormat(Text + "\n");
+            Logs.AppendFormat(Text + "\n");
             Console.WriteLine(Text);
         }
 
@@ -156,7 +154,7 @@ namespace SORTER
                 Directory.CreateDirectory(ReportPath);
             }
 
-            File.WriteAllText(String.Format("{0}/{1:yyyyMMddhhmmss}-Logs.log",ReportPath,DateTime.Now), Log.ToString());
+            File.WriteAllText(String.Format("{0}/{1:yyyyMMddhhmmss}-Logs.log",ReportPath,DateTime.Now), Logs.ToString());
         }
 
      
