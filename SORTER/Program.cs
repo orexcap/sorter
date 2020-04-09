@@ -30,7 +30,7 @@ namespace SORTER
         static void Sort(string Mode, string DestinationFolderPath,string[] ValidFileExtentions )
         {
             Logs = new StringBuilder();
-            ConsoleLog(String.Format("Sorting in {0} Mode.",Mode));
+            ConsoleLog(String.Format("Sorting {0}.",Mode));
             string FileListJsonFilePath = String.Format("{0}/FileList.json", DestinationFolderPath);
             List<FileIndexInfo> FileListCache = new List<FileIndexInfo>();
 
@@ -85,7 +85,7 @@ namespace SORTER
                     }
                 }    
             }
-            SaveFileListJson(FileListJsonFilePath, FileListCache, DestinationFolderPath);
+            SaveFileListJson("Re-index",FileListJsonFilePath, FileListCache, DestinationFolderPath);
             ConsoleLog(String.Format("Finished Sorting {0}.", Mode));
             SaveLogs(DestinationFolderPath);
         }
@@ -94,26 +94,24 @@ namespace SORTER
         {
             ConsoleLog(String.Format("Indexing Destination Folder {0}.", DestinationFolderPath));
             var rFileListCache = new List<FileIndexInfo>();
-            var PhotoDestinationFiles = Directory.GetFiles(DestinationFolderPath, "*.*", SearchOption.AllDirectories);
-
-            foreach (var file in PhotoDestinationFiles)
+            var destinationFiles = Directory.GetFiles(DestinationFolderPath, "*.*", SearchOption.AllDirectories);
+            foreach (var file in destinationFiles)
             {
                 string fileName = Path.GetFileName(file);
-
                 if (fileName.StartsWith('.') == false)
                 {
                     var fileIndex = ConvertToFileIndex(file);
                     rFileListCache.Add(fileIndex);
                 }
             }
-            SaveFileListJson(FileListJsonFilePath, rFileListCache,DestinationFolderPath);
+            SaveFileListJson("Index",FileListJsonFilePath, rFileListCache,DestinationFolderPath);
             return rFileListCache;
         }
 
-        static void SaveFileListJson(string FileListJsonFilePath, List<FileIndexInfo> FileListCache, string DestinationFolderPath)
+        static void SaveFileListJson(string IndexMode, string FileListJsonFilePath, List<FileIndexInfo> FileListCache, string DestinationFolderPath)
         {
             File.WriteAllText(FileListJsonFilePath, JsonConvert.SerializeObject(FileListCache));
-            ConsoleLog(String.Format("Done Indexing Destination Folder {0}. FileList.json was updated.", DestinationFolderPath));
+            ConsoleLog(String.Format("Done {0}ing Destination Folder {1}. FileList.json was updated.", IndexMode, DestinationFolderPath));
         }
 
         static FileIndexInfo ConvertToFileIndex(string FilePath){
@@ -154,7 +152,7 @@ namespace SORTER
                 Directory.CreateDirectory(ReportPath);
             }
 
-            File.WriteAllText(String.Format("{0}/{1:yyyyMMddhhmmss}-Logs.log",ReportPath,DateTime.Now), Logs.ToString());
+            File.WriteAllText(String.Format("{0}/{1:yyyyMMddhhmmss}-SORTER.log",ReportPath,DateTime.Now), Logs.ToString());
         }
 
      
