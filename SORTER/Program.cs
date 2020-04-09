@@ -33,6 +33,8 @@ namespace SORTER
             ConsoleLog(String.Format("Sorting {0}.",Mode));
             string FileListJsonFilePath = String.Format("{0}/FileList.json", DestinationFolderPath);
             List<FileIndexInfo> FileListCache = new List<FileIndexInfo>();
+            bool updateFileListJsonFile = false;
+
 
             // Destination Folder
             if (File.Exists(FileListJsonFilePath))
@@ -83,11 +85,15 @@ namespace SORTER
                     {
                         File.Move(file, destinationFilePath);
                         FileListCache.Add(f);
+                        updateFileListJsonFile = true;
                         ConsoleLog(String.Format("File {0}({1}) was moved to {2}.", f.FileName, f.MD5Checksum, destinationFolderPath));
                     }
                 }    
             }
-            SaveFileListJson("Re-index",FileListJsonFilePath, FileListCache, DestinationFolderPath);
+            if (updateFileListJsonFile)
+            {
+                SaveFileListJson("Re-index", FileListJsonFilePath, FileListCache, DestinationFolderPath);
+            }
             ConsoleLog(String.Format("Finished Sorting {0}.", Mode));
             SaveLogs(DestinationFolderPath);
         }
