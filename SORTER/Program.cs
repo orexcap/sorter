@@ -10,17 +10,17 @@ namespace SORTER
     class Program
     {
         //string SourceFolderPath = @"/Volumes/EOS_DIGITAL/DCIM";
-        public static string SourceFolderPath = "/Users/joseph/Desktop/TEST_UNSORTED";
+        public static string SourceFolderPath = @"SOURCE_FOLDER_PATH";
         public static string PhotosFileExtensions = "jpg,jpeg,cr2,cr3,png,gif,heif";
         public static string VideosFileExtensions = "mp4,mov,avi,mkv";
         public static StringBuilder Logs;
 
         static void Main(string[] args)
         {
-            string PhotosDestinationFolderPath = "/Users/joseph/Desktop/TEST_PHOTOS_SORTED";
+            string PhotosDestinationFolderPath = @"PHOTOS";
             string[] validPhotosFileExtensions = PhotosFileExtensions.Split(',');
              
-            string VideosDestinationFolderPath = "/Users/joseph/Desktop/TEST_VIDEOS_SORTED";
+            string VideosDestinationFolderPath = @"VIDEOS";
             string[] validVideosFileExtensions = VideosFileExtensions.Split(',');
 
             Sort("Photos", PhotosDestinationFolderPath, validPhotosFileExtensions);
@@ -45,7 +45,8 @@ namespace SORTER
             {
                 FileListCache = GenerateFileListJson(
                     DestinationFolderPath,
-                    FileListJsonFilePath);
+                    FileListJsonFilePath,
+                    ValidFileExtentions);
             }
 
             // Source Folder
@@ -59,7 +60,8 @@ namespace SORTER
 
                 var folderDate = f.CreatedOnDate < f.UpdatedOnDate ? f.CreatedOnDate : f.UpdatedOnDate;
 
-                if (ValidFileExtentions.Contains(f.FileExtension.ToLower()))
+                if (f.FileName.StartsWith('.') == false && 
+                    ValidFileExtentions.Contains(f.FileExtension.ToLower()))
                 {
                     string destinationFolderPath = String.Format(@"{0}/{1:yyyy}/{1:MM}/{1:yyyyMMdd}/{2}"
                         , DestinationFolderPath, folderDate, f.FileExtension.ToUpper());
@@ -90,19 +92,21 @@ namespace SORTER
             SaveLogs(DestinationFolderPath);
         }
 
-        static List<FileIndexInfo> GenerateFileListJson(string DestinationFolderPath, string FileListJsonFilePath)
+        static List<FileIndexInfo> GenerateFileListJson(string DestinationFolderPath,
+         string FileListJsonFilePath, string[] ValidFileExtentions)
         {
             ConsoleLog(String.Format("Indexing Destination Folder {0}.", DestinationFolderPath));
             var rFileListCache = new List<FileIndexInfo>();
             var destinationFiles = Directory.GetFiles(DestinationFolderPath, "*.*", SearchOption.AllDirectories);
             foreach (var file in destinationFiles)
             {
-                string fileName = Path.GetFileName(file);
-                if (fileName.StartsWith('.') == false)
-                {
-                    var fileIndex = ConvertToFileIndex(file);
-                    rFileListCache.Add(fileIndex);
-                }
+                var f = ConvertToFileIndex(file);
+                Console.WriteLine(f.FileName);
+                if (f.FileName.StartsWith('.') == false && 
+                    ValidFileExtentions.Contains(f.FileExtension.ToLower()))
+                    {
+                         rFileListCache.Add(f);
+                    }
             }
             SaveFileListJson("Index",FileListJsonFilePath, rFileListCache,DestinationFolderPath);
             return rFileListCache;
@@ -154,7 +158,5 @@ namespace SORTER
 
             File.WriteAllText(String.Format("{0}/{1:yyyyMMddhhmmss}-SORTER.log",ReportPath,DateTime.Now), Logs.ToString());
         }
-
-     
     }
 }
