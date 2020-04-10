@@ -131,7 +131,7 @@ namespace SORTER
 
             if(Path.GetExtension(FilePath).StartsWith('.'))
             {
-                fileExtension = Path.GetExtension(FilePath).Remove(1);
+                fileExtension = Path.GetExtension(FilePath).Substring(1);
             }
 
             FileIndexInfo rFileIndexInfo = new FileIndexInfo();
