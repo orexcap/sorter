@@ -1,4 +1,4 @@
-# Photo and Video Sorter. 
+# Photo and Video Sorter
 
 Sort and move your Photos and Videos to a target directory based on media's create or modified date.
 
