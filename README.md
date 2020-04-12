@@ -9,7 +9,7 @@ Sort and move your Photos and Videos to a target directory based on media's crea
 
 ## Sample (Windows)
 
-### Source SD Card :
+### Source folder :
 <pre>
 D:\DCIM\103___03\IMG_0887.JPG <-- Created on March 31, 2020
 D:\DCIM\103___04\IMG_0888.JPG <-- Created on April 1, 2020
