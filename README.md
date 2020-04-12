@@ -2,7 +2,7 @@
 
 Sort and move your Photos and Videos to a target directory based on media's create or modified date.
 
-- Organize your media in /TARGET_PHOTO_LIBRARY/yyyy/MM/yyyyMMdd/FILEFORMAT/ structure
+- Organize your media in /TARGET_LIBRARY/yyyy/MM/yyyyMMdd/FILEFORMAT/ structure
 - Checks if duplicate photos / videos in your target directory
 - Review the sort operation thru yyyyMMddhhmmss-SORTER.log file report
 - Runs on Windows / Mac / Raspbian with .NET Core 3.1 installed
