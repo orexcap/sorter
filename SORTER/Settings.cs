@@ -8,7 +8,7 @@ namespace SORTER
         public string VideosFileExtensions {get; set; }
         public string PhotosDestinationFolderPath { get; set; }
         public string VideosDestinationFolderPath { get; set; }
- 
+
         public Settings()
         {
         }

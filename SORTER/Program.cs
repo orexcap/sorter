@@ -5,6 +5,11 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
+
+using System.Xml.Linq;
+using System.Xml;
+using System.Xml.XPath;
+
 namespace SORTER
 {
     class Program
@@ -14,7 +19,7 @@ namespace SORTER
         public static string ConfigJsonFilePath = String.Format(@"{0}/Sorter.Config.json",
             Environment.CurrentDirectory);
 
-        static void Main(string[] args){
+        static void Main(string[] args){ 
             LoadConfigJson();
             Sort("Photos", SETTINGS.SourceFolderPath, SETTINGS.PhotosDestinationFolderPath,
                 SETTINGS.PhotosFileExtensions);
@@ -31,7 +36,7 @@ namespace SORTER
             SETTINGS.SourceFolderPath = newSourceFolderPath;
             SETTINGS.PhotosDestinationFolderPath = newPhotosDestinationFolderPath;
             SETTINGS.VideosDestinationFolderPath = newVideosDestinationFolderPath;
-            SETTINGS.PhotosFileExtensions = "jpg,jpeg,cr2,cr3,png,gif,heif";
+            SETTINGS.PhotosFileExtensions = "jpg,jpeg,cr2,cr3,png,gif,heif,heic";
             SETTINGS.VideosFileExtensions = "mp4,mov,avi,mkv";
 
             if(File.Exists(ConfigJsonFilePath)){
@@ -99,6 +104,8 @@ namespace SORTER
 
             foreach (var file in ValidFiles){
                 var f = ConvertToFileIndex(file);
+
+
                 var folderDate = f.CreatedOnDate < f.UpdatedOnDate ? f.CreatedOnDate : f.UpdatedOnDate;
 
                 if (f.FileName.StartsWith('.') == false && 
@@ -195,6 +202,9 @@ namespace SORTER
             rFileIndexInfo.FilePath = FilePath;
             rFileIndexInfo.CreatedOnDate   = File.GetCreationTime(FilePath);
             rFileIndexInfo.UpdatedOnDate = File.GetLastWriteTime(FilePath);
+
+            ReadXMPFile(rFileIndexInfo);
+
             return rFileIndexInfo;
         }
 
@@ -205,6 +215,43 @@ namespace SORTER
                     return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
                 }
             }
+        }
+
+        static void ReadXMPFile(FileIndexInfo FileIndex){
+           string directoryName = Path.GetDirectoryName(FileIndex.FilePath);
+           string fileName = Path.GetFileNameWithoutExtension(FileIndex.FilePath);
+           string xmpFileName = fileName + ".xmp";
+           string xmpFilePath = String.Format("{0}/{1}",directoryName,xmpFileName);
+  
+           if(File.Exists(xmpFilePath))
+           {
+               FileIndex.CreatedOnDateFromXMP = new List<DateTime>();
+               Console.WriteLine("Reading Created On Date from XMP : {0}",xmpFilePath);
+               XDocument doc = XDocument.Load(xmpFilePath);
+
+                //     XNamespace ns = XNamespace.Get("adobe:ns:meta/");
+                //     var listOfNames = doc.Descendants(ns + "xmpmeta")
+                //              .Select(x => x.Elements().First().Value).ToList();
+                //    Console.WriteLine (JsonConvert.SerializeObject(listOfNames));
+ 
+                var query = doc.Descendants()
+                .Where(c => c.Name.LocalName.ToString() == "DateCreated")
+                .ToArray();
+
+                foreach (String item in query) {
+                    FileIndex.CreatedOnDateFromXMP.Add(Convert.ToDateTime(item));
+                    //Console.WriteLine(item);
+                }
+
+                //Apply the Changes got from the XMP File
+                if(FileIndex.CreatedOnDateFromXMP.FirstOrDefault() != null)
+                {
+                    FileIndex.CreatedOnDateFromFile = FileIndex.CreatedOnDate;
+                    FileIndex.CreatedOnDate = FileIndex.CreatedOnDateFromXMP.FirstOrDefault();
+                    FileIndex.FileName = String.Format("{0:yyyyMMddhhmmss}-{1}",FileIndex.CreatedOnDate,FileIndex.FileName);
+                }
+
+           }
         }
 
         static void ConsoleLog(String Text){

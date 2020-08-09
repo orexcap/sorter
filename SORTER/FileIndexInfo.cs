@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 namespace SORTER
 {
     public class FileIndexInfo
@@ -9,6 +10,10 @@ namespace SORTER
         public string FilePath { get; set; }
         public DateTime CreatedOnDate {get; set;}
         public DateTime UpdatedOnDate {get; set;}
+
+        public DateTime CreatedOnDateFromFile {get; set;}
+
+        public List<DateTime> CreatedOnDateFromXMP {get;set;}
         public FileIndexInfo()
         {
         }
