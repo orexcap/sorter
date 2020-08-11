@@ -98,14 +98,13 @@ namespace SORTER
             var ValidFiles = new List<string>();
             foreach(var vfe in ValidFileExtentions){
                 string searchPattern = string.Format("*.{0}",vfe);
-                var validFiles = Directory.GetFiles(SourceFolderPath, searchPattern, SearchOption.AllDirectories);
+                var validFiles = Directory.GetFiles(SourceFolderPath, searchPattern, 
+                    new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive, RecurseSubdirectories = true });
                 ValidFiles.AddRange(validFiles);
             }
-
+ 
             foreach (var file in ValidFiles){
                 var f = ConvertToFileIndex(file);
-
-
                 var folderDate = f.CreatedOnDate < f.UpdatedOnDate ? f.CreatedOnDate : f.UpdatedOnDate;
 
                 if (f.FileName.StartsWith('.') == false && 
