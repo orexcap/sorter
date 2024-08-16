@@ -5,7 +5,7 @@ Sort and move your Photos and Videos to a target directory based on media's crea
 - Organize your media in /TARGET_LIBRARY/yyyy/MM/yyyyMMdd/FILEFORMAT/ structure
 - Checks if duplicate photos / videos in your target directory
 - Review the sort operation thru yyyyMMddhhmmss-SORTER.log file report
-- Runs on Windows / Mac / Raspbian with .NET Core 3.1 installed
+- Runs on Windows / Mac / Raspbian with .NET 8.0 installed
 
 ## Sample (Windows)
 
@@ -27,7 +27,7 @@ X:\PHOTOS_LIBRARY\2020\04\20200402\CR3\IMG_0889.CR3
 
 ## Installation (Windows)
 
-1. [Install .NET Core 3.1](https://dotnet.microsoft.com/download/dotnet-core/3.1) in your system
+1. [Install .NET 8.0](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) in your system
 2. [Download](https://github.com/orexcap/sorter) or clone (git clone https://github.com/orexcap/sorter.git) SORTER
 3. Go to your /sorter/SORTER/ directory (E.g. C:\Users\Joseph\Desktop\sorter\SORTER )
 4. Run the application for the first time to generate your Sorter.Config.json file
