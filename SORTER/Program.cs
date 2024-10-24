@@ -299,6 +299,17 @@ namespace SORTER
                                         oDateSource = ($"{directory.Name} - {tag.Name} = {tag.Description}");
                                     }
                                 }
+
+                                // Parse a string date from MAC OS Photos E.g. 2003:05:15 17:18:38
+                                if (DateTime.TryParseExact(dateString, "yyyy:MM:dd HH:mm:ss", CultureInfo.InvariantCulture,
+                                                     DateTimeStyles.None, out vDate))
+                                {
+                                    if (vDate < oDate)
+                                    {
+                                        oDate = vDate;
+                                        oDateSource = ($"{directory.Name} - {tag.Name} = {tag.Description}");
+                                    }
+                                }
                             }
                         }
                     }
