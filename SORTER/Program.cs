@@ -1,16 +1,14 @@
-﻿using System;
+﻿using MetadataExtractor;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using Newtonsoft.Json;
-
-using MetadataExtractor;
-using System.Diagnostics;
-using Directory = System.IO.Directory;
-using System.Globalization;
 using System.Threading.Tasks;
+using Directory = System.IO.Directory;
 
 namespace SORTER
 {
@@ -42,6 +40,7 @@ namespace SORTER
             SETTINGS.VideosDestinationFolderPath = newVideosDestinationFolderPath;
             SETTINGS.PhotosFileExtensions = "jpg,jpeg,cr2,cr3,png,gif,heif,heic";
             SETTINGS.VideosFileExtensions = "mp4,mov,avi,mkv,360";
+            SETTINGS.RenameFiles = false;
 
             if (File.Exists(ConfigJsonFilePath))
             {
@@ -84,8 +83,10 @@ namespace SORTER
             string FileExtensions)
         {
             LOGS = new StringBuilder();
+
             DateTime sDateTime = DateTime.Now;
             ConsoleLog($"Sorting {Mode}. Current time is {sDateTime}.");
+            ConsoleLog($"Rename files is {SETTINGS.RenameFiles}.");
 
             string FileListJsonFilePath = $"{DestinationFolderPath}{SEP}FileList.json";
             List<FileIndexInfo> FileListCache = new List<FileIndexInfo>();
@@ -123,15 +124,20 @@ namespace SORTER
             {
                 var f = ConvertToFileIndex(file);
 
-                if (f.FileName.StartsWith('.') == false &&
+                if (f.OriginalFileName.StartsWith('.') == false &&
                     ValidFileExtentions.Contains(f.FileExtension.ToLower()))
                 {
                     AppendMetaData(f);
-                    var folderDate = f.MediaTakenOnDate;
+                    var folderDate = f.Sorter_Date;
                     try
                     {
                         string destinationFolderPath = $"{DestinationFolderPath}{SEP}{folderDate:yyyy}{SEP}{folderDate:MM}{SEP}{folderDate:yyyyMMdd}{SEP}{f.FileExtension.ToUpper()}";
-                        string destinationFilePath = $"{destinationFolderPath}{SEP}{f.FileName}";
+                        string destinationFilePath = $"{destinationFolderPath}{SEP}{f.OriginalFileName}";
+
+                        if (SETTINGS.RenameFiles)
+                        {
+                            destinationFilePath = $"{destinationFolderPath}{SEP}{f.Sorter_FileName}";
+                        }
 
                         if (Directory.Exists(destinationFolderPath) == false)
                         {
@@ -142,19 +148,19 @@ namespace SORTER
 
                         if (fileCount != 0)
                         {
-                            ConsoleLog($"File {f.FileName}({f.MD5Checksum}) already exists.");
+                            ConsoleLog($"File {f.OriginalFileName}({f.MD5Checksum}) already exists.");
                         }
                         else if (File.Exists(destinationFilePath))
                         {
-                            ConsoleLog($"File {f.FileName}({f.MD5Checksum}) already exists.");
+                            ConsoleLog($"File {f.OriginalFileName}({f.MD5Checksum}) already exists.");
                             // Retest MD5 Checksum of DestinationFilePath
                             string ReMD5Checksum = CalculateMD5(destinationFilePath);
                             if (ReMD5Checksum != f.MD5Checksum)
                             {
                                 // Move the file with MD5 as prefix (DUP+First 8 Character)
-                                f.FileName = $"DUP{f.MD5Checksum.Substring(0, 8)}-{f.FileName}";
-                                destinationFilePath = $"{destinationFolderPath}{SEP}{f.FileName}";
-                                ConsoleLog($"MD5 Checksum Mismatch Source's MD5 {f.MD5Checksum} and Destination MD5 (Recalculated) {ReMD5Checksum}. Moving File as {f.FileName}.");
+                                f.OriginalFileName = $"DUP{f.MD5Checksum.Substring(0, 8)}-{f.OriginalFileName}";
+                                destinationFilePath = $"{destinationFolderPath}{SEP}{f.OriginalFileName}";
+                                ConsoleLog($"MD5 Checksum Mismatch Source's MD5 {f.MD5Checksum} and Destination MD5 (Recalculated) {ReMD5Checksum}. Moving File as {f.OriginalFileName}.");
                                 updateFileListJsonFile = MoveFile(FileListCache, file, f, destinationFolderPath, destinationFilePath);
                             }
                         }
@@ -187,12 +193,18 @@ namespace SORTER
             FileIndexInfo f, string destinationFolderPath, string destinationFilePath)
         {
             bool updateFileListJsonFile;
-            ConsoleLog($"Moving File {f.FileName}({f.MD5Checksum}) to {destinationFolderPath}.");
+            ConsoleLog($"Moving File {f.OriginalFileName}({f.MD5Checksum}) to {destinationFolderPath}. Source Date : {f.Sorter_DateSource}.");
+
+            if (SETTINGS.RenameFiles)
+            {
+                ConsoleLog($"{f.OriginalFileName} will be renamed to {f.Sorter_FileName}.");
+            }
+
             File.Move(file, destinationFilePath);
-            f.SortedFilePath = $"{destinationFolderPath}{SEP}{f.FileName}";
+            f.Sorter_FilePath = $"{destinationFolderPath}{SEP}{f.Sorter_FileName}";
             FileListCache.Add(f);
             updateFileListJsonFile = true;
-            ConsoleLog($"Done {f.FileName} was moved to {f.SortedFilePath}.");
+            ConsoleLog($"Done {f.OriginalFileName} was moved to {f.Sorter_FilePath}.");
             return updateFileListJsonFile;
         }
 
@@ -207,11 +219,11 @@ namespace SORTER
             Parallel.ForEach(destinationFiles, file =>
             {
                 var f = ConvertToFileIndex(file);
-                if (f.FileName.StartsWith('.') == false &&
+                if (f.OriginalFileName.StartsWith('.') == false &&
                     ValidFileExtentions.Contains(f.FileExtension.ToLower()))
                 {
                     AppendMetaData(f);
-                    f.SortedFilePath = $"{DestinationFolderPath}{SEP}{f.FileName}";
+                    f.Sorter_FilePath = $"{DestinationFolderPath}{SEP}{f.OriginalFileName}";
                     rFileListCache.Add(f);
                     ConsoleLog($"Adding {f.OriginalFilePath} to Index file.");
                 }
@@ -239,7 +251,7 @@ namespace SORTER
 
             FileIndexInfo rFileIndexInfo = new FileIndexInfo();
             rFileIndexInfo.MD5Checksum = CalculateMD5(FilePath);
-            rFileIndexInfo.FileName = fileName;
+            rFileIndexInfo.OriginalFileName = fileName;
             rFileIndexInfo.FileExtension = fileExtension;
             rFileIndexInfo.OriginalFilePath = FilePath;
             rFileIndexInfo.CreatedOnDate = File.GetCreationTime(FilePath);
@@ -250,13 +262,13 @@ namespace SORTER
 
         static void AppendMetaData(FileIndexInfo FileInfo)
         {
-            DateTime oDate = FileInfo.CreatedOnDate;
-            String oDateSource = "CreatedOnDate";
+            DateTime sorter_Date = FileInfo.CreatedOnDate;
+            String sorter_DateSource = "CreatedOnDate";
 
-            if (FileInfo.UpdatedOnDate < oDate)
+            if (FileInfo.UpdatedOnDate < sorter_Date)
             {
-                oDate = FileInfo.UpdatedOnDate;
-                oDateSource = "UpdatedOnDate";
+                sorter_Date = FileInfo.UpdatedOnDate;
+                sorter_DateSource = "UpdatedOnDate";
             }
 
             try
@@ -268,46 +280,48 @@ namespace SORTER
                     foreach (var tag in directory.Tags)
                     {
                         if (tag.Name.Contains("Created")
-                             || tag.Name.Contains("Modified")
-                             || tag.Name.Contains("Date"))
+                                || tag.Name.Contains("Modified")
+                                || tag.Name.Contains("Original")
+                                || tag.Name.Contains("Digitized")
+                                || tag.Name.Contains("Creation"))
                         {
                             if (tag.Description != null)
                             {
-                                DateTime vDate = oDate;
+                                DateTime metadata_Date = sorter_Date;
                                 string dateString = tag.Description;
 
                                 // Parse a string.
                                 if (DateTime.TryParseExact(dateString, "ddd MMM dd HH:mm:ss yyyy",
                                         CultureInfo.InvariantCulture, DateTimeStyles.None,
-                                        out vDate))
+                                        out metadata_Date))
                                 {
-                                    if (vDate <= oDate)
+                                    if (metadata_Date <= sorter_Date)
                                     {
-                                        oDate = vDate;
-                                        oDateSource = ($"{directory.Name} - {tag.Name} = {tag.Description}");
+                                        sorter_Date = metadata_Date;
+                                        sorter_DateSource = ($"{directory.Name} - {tag.Name} = {tag.Description}");
                                     }
                                 }
 
                                 // Parse a string with time zone information. 
                                 if (DateTime.TryParseExact(dateString, "ddd MMM dd HH:mm:ss zzz yyyy",
                                         CultureInfo.InvariantCulture, DateTimeStyles.None,
-                                        out vDate))
+                                        out metadata_Date))
                                 {
-                                    if (vDate <= oDate)
+                                    if (metadata_Date <= sorter_Date)
                                     {
-                                        oDate = vDate;
-                                        oDateSource = ($"{directory.Name} - {tag.Name} = {tag.Description}");
+                                        sorter_Date = metadata_Date;
+                                        sorter_DateSource = ($"{directory.Name} - {tag.Name} = {tag.Description}");
                                     }
                                 }
 
                                 // Parse a string date from MAC OS Photos E.g. 2003:05:15 17:18:38
                                 if (DateTime.TryParseExact(dateString, "yyyy:MM:dd HH:mm:ss", CultureInfo.InvariantCulture,
-                                                     DateTimeStyles.None, out vDate))
+                                                     DateTimeStyles.None, out metadata_Date))
                                 {
-                                    if (vDate < oDate)
+                                    if (metadata_Date < sorter_Date)
                                     {
-                                        oDate = vDate;
-                                        oDateSource = ($"{directory.Name} - {tag.Name} = {tag.Description}");
+                                        sorter_Date = metadata_Date;
+                                        sorter_DateSource = ($"{directory.Name} - {tag.Name} = {tag.Description}");
                                     }
                                 }
                             }
@@ -320,8 +334,14 @@ namespace SORTER
                 ConsoleLog(ex.Message);
             }
 
-            FileInfo.MediaTakenOnDate = oDate;
-            FileInfo.MediaTakenOnDateSource = oDateSource;
+            FileInfo.Sorter_FileName = FileInfo.OriginalFileName;
+            FileInfo.Sorter_Date = sorter_Date;
+            FileInfo.Sorter_DateSource = sorter_DateSource;
+
+            if (SETTINGS.RenameFiles)
+            {
+                FileInfo.Sorter_FileName = $"{FileInfo.Sorter_Date:yyyyMMddHHmmss}_{FileInfo.Sorter_FileName}";
+            }
         }
 
         static string CalculateMD5(string filename)
@@ -353,8 +373,6 @@ namespace SORTER
 
             File.WriteAllText($"{ReportPath}{SEP}{DateTime.Now:yyyyMMddhhmmss}-SORTER.log", LOGS.ToString());
         }
-
-
 
     }
 }
